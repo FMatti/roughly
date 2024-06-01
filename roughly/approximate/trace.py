@@ -43,8 +43,6 @@ class HutchinsonTraceEstimator(TraceEstimator):
         self.m += m
         return self.est
 
-#def Input function handles not matrices (Xtrace, Quadratic, Low-rank, low-rank++)
-
 class SubspaceProjectionEstimator(TraceEstimator):
     def __init__(self, rng="gaussian"):
         super().__init__(rng)
@@ -62,7 +60,6 @@ class SubspaceProjectionEstimator(TraceEstimator):
         self.est = np.trace(self.Q.T @ self.A @ self.Q)
         self.m += m
         return self.est
-
 
 # Should be Low-Rank + Hutchinson correction, right?
 class DeflatedTraceEstimator(TraceEstimator):
@@ -87,3 +84,5 @@ class DeflatedTraceEstimator(TraceEstimator):
         self.m += m
         return self.est
 
+
+#def Input function handles not matrices (Xtrace, Quadratic, Low-rank, low-rank++)

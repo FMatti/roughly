@@ -8,8 +8,8 @@ from roughly.core.rng import gaussian, rademacher, spherical
 from .sketch import StandardSketch
 
 class LowRankApproximator(metaclass=ABCMeta):
-    def __init__(self, sketch=StandardSketch):
-        self.sketch = sketch()
+    def __init__(self, sketch=StandardSketch()):
+        self.sketch = sketch
 
     @abstractmethod
     def compute(self):
@@ -20,7 +20,7 @@ class LowRankApproximator(metaclass=ABCMeta):
         pass
 
 class RandomizedSVD(LowRankApproximator):
-    def __init__(self, sketch=StandardSketch):
+    def __init__(self, sketch=StandardSketch()):
         super().__init__(sketch)
 
     def compute(self, A, m=100):
@@ -30,6 +30,24 @@ class RandomizedSVD(LowRankApproximator):
         U, self.S, self.V_H = np.linalg.svd(self.Q.T.conj() @ A, full_matrices=False)
         self.U = self.Q @ U
         return self.U, self.S, self.V_H
+
+    def refine(self, m=10):
+        self.Q = self.sketch.refine(m=m)
+        U, self.S, self.V_H = np.linalg.svd(self.Q.T.conj() @ self.A, full_matrices=False)
+        self.U = self.Q @ U
+        self.m += m
+        return self.U, self.S, self.V_H
+
+class Nystrom(LowRankApproximator):
+    def __init__(self, sketch=StandardSketch(orthogonal=False)):
+        super().__init__(sketch)
+
+    def compute(self, A, m=100):
+        self.A = A
+        self.m = m
+        self.Q, S = self.sketch.compute(A, m=m, return_embedding=True)
+        self.Y = S.T @ self.Q
+        return self.Q, self.Y
 
     def refine(self, m=10):
         self.Q = self.sketch.refine(m=m)
