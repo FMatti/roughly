@@ -11,14 +11,17 @@ def test_ArnoldiDecomposition():
     for m in [1, 2, 3, 10, 20]:
         X = np.random.randn(n, m)
 
-        ar = ArnoldiDecomposition()
-        U, H = ar.compute(A, X, k=k)
+        decomposition = ArnoldiDecomposition()
+        U, H = decomposition.compute(A, X, k=k)
         k_refined = k
         for k_add in [1, 2, 5]:
             k_refined += k_add
-            U, H = ar.refine(k_add)
-            for i in range(m):
-                np.testing.assert_allclose(A @ U[i, :, :k_refined] - U[i] @ H[i], 0, atol=1e-10)
+            U, H = decomposition.refine(k_add)
+            if m == 1:
+                np.testing.assert_allclose(A @ U[:, :k_refined] - U @ H, 0, atol=1e-10)
+            else:
+                for i in range(m):
+                    np.testing.assert_allclose(A @ U[i, :, :k_refined] - U[i] @ H[i], 0, atol=1e-10)
 
 def test_BlockArnoldiDecomposition():
     n = 100
@@ -28,12 +31,12 @@ def test_BlockArnoldiDecomposition():
     for m in [1, 2, 3, 10, 20]:
         X = np.random.randn(n, m)
 
-        ar = BlockArnoldiDecomposition()
-        U, H = ar.compute(A, X, k=k)
+        decomposition = BlockArnoldiDecomposition()
+        U, H = decomposition.compute(A, X, k=k)
         k_refined = k
         for k_add in [1, 2, 5]:
             k_refined += k_add
-            U, H = ar.refine(k_add)
+            U, H = decomposition.refine(k_add)
             np.testing.assert_allclose(A @ U[:, :-m] - U @ H, 0, atol=1e-10)
 
 def test_LanczosDecomposition():
@@ -45,14 +48,17 @@ def test_LanczosDecomposition():
     for m in [1, 2, 3, 10, 20]:
         X = np.random.randn(n, m)
 
-        ar = LanczosDecomposition()
-        U, H = ar.compute(A, X, k=k)
+        decomposition = LanczosDecomposition()
+        U, H = decomposition.compute(A, X, k=k)
         k_refined = k
         for k_add in [1, 2, 5]:
             k_refined += k_add
-            U, H = ar.refine(k_add)
-            for i in range(m):
-                np.testing.assert_allclose(A @ U[i, :, :k_refined] - U[i] @ H[i], 0, atol=1e-10)
+            U, H = decomposition.refine(k_add)
+            if m == 1:
+                np.testing.assert_allclose(A @ U[:, :k_refined] - U @ H, 0, atol=1e-10)
+            else:
+                for i in range(m):
+                    np.testing.assert_allclose(A @ U[i, :, :k_refined] - U[i] @ H[i], 0, atol=1e-10)
 
 def test_BlockLanczosDecomposition():
     n = 100
@@ -60,13 +66,13 @@ def test_BlockLanczosDecomposition():
     A = np.random.randn(n, n) + 1j * np.random.randn(n, n)
     A = A + A.conj().T
 
-    for m in [1, 2, 3]:#, 10, 20]:
+    for m in [1, 2, 3]:#, 10, 20]: <- basis becomes degenerate by design
         X = np.random.randn(n, m)
 
-        ar = BlockLanczosDecomposition()
-        U, H = ar.compute(A, X, k=k)
+        decomposition = BlockLanczosDecomposition()
+        U, H = decomposition.compute(A, X, k=k)
         k_refined = k
         for k_add in [1, 2, 5]:
             k_refined += k_add
-            U, H = ar.refine(k_add)
+            U, H = decomposition.refine(k_add)
             np.testing.assert_allclose(A @ U[:, :-m] - U @ H, 0, atol=1e-10)

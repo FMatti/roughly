@@ -1,14 +1,22 @@
-# Lanczos / Arnoldi
+"""
+krylov.py
+---------
+
+Collection of methods for computing Krylov-space matrix decompositions.
+"""
 
 import numpy as np
 import scipy as sp
 from abc import ABCMeta, abstractmethod
 
 class KrylovDecomposition(metaclass=ABCMeta):
-    def __init__(self, reorth_tol=0.7):
-        self.reorth_tol = reorth_tol
+    def __init__(self):
+        self.k = 0
 
-    def preprocess(self, A, X, k, dtype=None):
+    def _preprocess(self, A, X, k, dtype=None):
+        """
+        Preprocess the input matrix/operator and determine problem dimensions.
+        """
         if len(X.shape) < 2:
             X = X.reshape(-1, 1)
         self.n, self.m = X.shape
@@ -16,97 +24,161 @@ class KrylovDecomposition(metaclass=ABCMeta):
 
         self.matvec = lambda x: A @ x if isinstance(A, np.ndarray) else A
         self.dtype = A.dtype if dtype is None else dtype
+        return X
 
     @staticmethod
-    def zeropad(A, axes, sizes):
+    def _zeropad(A, axes, sizes):
+        """
+        Pad np.ndarray with user specified number of zeros along selected axes.
+        """
         pad = [[0, 0] for _ in range(len(A.shape))]
         for axis, size in zip(axes, sizes):
             pad[axis][1] = size
         return np.pad(A, pad, mode="constant")
 
     @abstractmethod
-    def initialize(self):
+    def _initialize(self):
+        """
+        Initialize the matrices which define the decomposition.
+        """
         pass
 
     @abstractmethod
-    def iterate(self):
+    def _iterate(self, j):
+        """
+        Perform the j-th iteration of the Krylov method.
+        """
         pass
 
     @abstractmethod
-    def result(self):
+    def _result(self):
+        """
+        Return the matrices which define the decomposition.
+        """
         pass
    
     @abstractmethod
-    def extend(self):
+    def _extend(self, k):
+        """
+        Extend the matrices which define the decomposition to k more iterations.
+        """
         pass
 
     def compute(self, A, X, k=100, dtype=None):
         """
-        Lanczos algorithm for Hermitian matrices.
+        Compute Krylov decomposition of a linear operator
+
+            A @ U[:, :k] = U[:, :k+1] @ H
+
+        for a single input vector, a set of input vectors, or an input matrix.
 
         Parameters
         ----------
         A : np.ndarray of shape (n, n) or function
-            The matrix for which a basis of the Krylov subspace is computed or the
-            function handle implementing the matrix vector products.
+            The matrix or linear operator (given as function handle) for which a
+            basis of the Krylov subspace is computed.
         X : np.ndarray of shape (n) or (n, m)
             The starting vector(s) used as input to the Arnoldi method.
-        k : int > 1
+        k : int >= 1
             The number of iterations in the Arnoldi method
+        dtype : [np.float, np.complex, ...]
+            The expected data type of the Krylov basis. If None, dtype is
+            inferred from A.
 
         Returns
         -------
         self.U : np.ndarray of shape (n, k + 1) or (m, n, k + 1)
-            Orthogonal basis of the Krylov subspace of A and X.
+            Orthogonal basis of the Krylov subspace of A for X.
         self.H : np.ndarray of shape (k + 1, k) or (m, k + 1, k)
             Hessenberg matrix.
         """
 
-        self.preprocess(A, X, k, dtype)
-        self.initialize(X)
+        X = self._preprocess(A, X, k, dtype)
+        self._initialize(X)
 
         for j in range(k):
-            self.iterate(j)
+            self._iterate(j)
 
-        return self.result()
+        return self._result()
 
     def refine(self, k=1):
         """
-        Arnoldi method.
+        Refine the existing Krylov decomposition of a linear operator,
 
         Parameters
         ----------
         k : int >= 1
-            The number of iterations in the Arnoldi method
+            The number of additional iterations to perform with Krylov method.
 
         Returns
         -------
         U : np.ndarray of shape (n, k + 1) or (m, n, k + 1)
-            Orthogonal basis of the Krylov subspace of A and X.
+            Orthogonal basis of the Krylov subspace of A for X.
         H : np.ndarray of shape (k + 1, k) or (m, k + 1, k)
             Hessenberg matrix.
         """
 
-        self.extend(k)
+        assert self.k != 0, "Must first compute a Krylov decomposition."
+
+        self._extend(k)
 
         for j in range(self.k, self.k + k):
-            self.iterate(j)
+            self._iterate(j)
 
         self.k += k
 
-        return self.result()
+        return self._result()
 
 class ArnoldiDecomposition(KrylovDecomposition):
-    def __init__(self, reorth_tol=0.7):
-        super().__init__(reorth_tol)
+    """
+    Implements the Krylov-decomposition of a matrix or linear operator A with
+    the Arnoldi method [1]. The decomposition consists of an orthogonal matrix U
+    and a upper Hessenberg matrix H which satisfy
 
-    def initialize(self, X):
+        A @ U[:, :k] = U[:, :k+1] @ H
+
+    after k iterations of the Arnoldi method.
+
+    Parameters
+    ----------
+    reorth_tol : float < 1
+        The tolerance for reorthogonalizing the Krylov basis between iterations.
+
+    Attributes
+    ----------
+    .compute(A, X, k, ...)
+        Compute Krylov decomposition of a linear operator A for starting
+        vector(s) X with k Arnoldi iterations.
+    .refine(k, ...)
+        Refine Krylov decomposition with k additional Arnoldi iterations.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from roughly.approximate.krylov import ArnoldiDecomposition
+    >>> decomposition = ArnoldiDecomposition()
+    >>> A = np.random.randn(100, 100)
+    >>> X = np.random.randn(100)
+    >>> U, H = decomposition.compute(A, X, 10)
+    >>> np.testing.assert_allclose(A @ U[:, :10] - U @ H, 0, atol=1e-10)
+    >>> U, H = decomposition.refine(1)
+    >>> np.testing.assert_allclose(A @ U[:, :11] - U @ H, 0, atol=1e-10)
+
+    [1] Arnoldi, W. E. (1951). "The principle of minimized iterations in the
+        solution of the matrix eigenvalue problem". Quarterly of Applied
+        Mathematics. 9 (1): 17–29. doi:10.1090/qam/42792.
+    """
+    def __init__(self, reorth_tol=0.7):
+        self.reorth_tol = reorth_tol
+        super().__init__()
+
+    def _initialize(self, X):
         self.H = np.zeros((self.k + 1, self.k, self.m), dtype=self.dtype)
         self.U = np.empty((self.k + 1, self.n, self.m), dtype=self.dtype)
 
         self.U[0] = X / np.linalg.norm(X, axis=0)
 
-    def iterate(self, j):
+    def _iterate(self, j):
         # Orthogonalize next iterate against previous iterates
         w = self.matvec(self.U[j])
         self.H[: j + 1, j] = np.einsum("ijk,jk->ik", self.U[: j + 1].conj(), w)
@@ -123,23 +195,72 @@ class ArnoldiDecomposition(KrylovDecomposition):
         self.H[j + 1, j] = np.linalg.norm(u_tilde, axis=0)
         self.U[j + 1] = u_tilde / self.H[j + 1, j]
 
-    def result(self):
+    def _result(self):
         U = np.einsum("ijk->kji", self.U)
         H = np.einsum("ijk->kij", self.H)
 
+        if self.m == 1:
+            return U[0], H[0]
         return U, H
 
-    def extend(self, k):
-        self.H = self.zeropad(self.H, [0, 1], [k, k])
-        self.U = self.zeropad(self.U, [0], [k])
+    def _extend(self, k):
+        self.H = self._zeropad(self.H, [0, 1], [k, k])
+        self.U = self._zeropad(self.U, [0], [k])
 
 class LanczosDecomposition(KrylovDecomposition):
+    """
+    Implements the Krylov-decomposition of a matrix or linear operator A with
+    the Lanczos method [2]. The decomposition consists of an orthogonal matrix U
+    and a tridiagonal matrix H which satisfy
+
+        A @ U[:, :k] = U[:, :k+1] @ H
+
+    after k iterations of the Lanczos method.
+
+    Parameters
+    ----------
+    reorth_tol : float < 1
+        The tolerance for reorthogonalizing the Krylov basis between iterations.
+    return_matrix : bool
+        Whether to return the (full) tridiagonal matrix H or arrays of its
+        diagonal and off-diagonal elements. 
+    return_matrix : bool
+        Whether to extend the orthogonal matrix U with one more column after
+        the last iteration.
+
+    Attributes
+    ----------
+    .compute(A, X, k, ...)
+        Compute Krylov decomposition of a linear operator A for starting
+        vector(s) X with k Lanczos iterations.
+    .refine(k, ...)
+        Refine Krylov decomposition with k additional Lanczos iterations.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from roughly.approximate.krylov import LanczosDecomposition
+    >>> decomposition = LanczosDecomposition()
+    >>> A = np.random.randn(100, 100)
+    >>> A = A + A.T
+    >>> X = np.random.randn(100)
+    >>> U, H = decomposition.compute(A, X, 10)
+    >>> np.testing.assert_allclose(A @ U[:, :10] - U @ H, 0, atol=1e-10)
+    >>> U, H = decomposition.refine(1)
+    >>> np.testing.assert_allclose(A @ U[:, :11] - U @ H, 0, atol=1e-10)
+
+    [2] Lanczos, C. (1950). "An iteration method for the solution of the
+        eigenvalue problem of linear differential and integral operators".
+        Journal of Research of the National Bureau of Standards. 45 (4): 255–282.
+        doi:10.6028/jres.045.026.
+    """
     def __init__(self, reorth_tol=0.7, return_matrix=True, extend_matrix=True):
         self.return_matrix = return_matrix
         self.extend_matrix = extend_matrix
-        super().__init__(reorth_tol)
+        self.reorth_tol = reorth_tol
+        super().__init__()
 
-    def initialize(self, X):
+    def _initialize(self, X):
 
         # Initialize arrays for storing the block-tridiagonal elements
         self.a = np.empty((self.k, self.m), dtype=self.dtype)
@@ -149,7 +270,7 @@ class LanczosDecomposition(KrylovDecomposition):
         self.b[0] = np.linalg.norm(X, axis=0)
         self.U[0] = X / self.b[0]
 
-    def iterate(self, j):
+    def _iterate(self, j):
         # New set of vectors
         w = self.matvec(self.U[j])
         self.a[j] = np.sum(self.U[j].conj() * w, axis=0)
@@ -167,7 +288,7 @@ class LanczosDecomposition(KrylovDecomposition):
         self.b[j + 1] = np.linalg.norm(u_tilde, axis=0)
         self.U[j + 1] = u_tilde / self.b[j + 1]
 
-    def result(self):
+    def _result(self):
         U = np.einsum("ijk->kji", self.U)
         a = np.einsum("ij->ji", self.a)
         b = np.einsum("ij->ji", self.b)
@@ -179,26 +300,63 @@ class LanczosDecomposition(KrylovDecomposition):
                 T[i, -1, -1] = b[i, -1]
             if not self.extend_matrix:
                 T = T[:, :self.k, :]
+            if self.m == 1:
+                return U[0], T[0]
             return U, T
 
+        if self.m == 1:
+            return U[0], a[0], b[0]
         return U, a, b
 
-    def extend(self, k):
-        self.a = self.zeropad(self.a, [0], [k])
-        self.b = self.zeropad(self.b, [0], [k])
-        self.U = self.zeropad(self.U, [0], [k])
+    def _extend(self, k):
+        self.a = self._zeropad(self.a, [0], [k])
+        self.b = self._zeropad(self.b, [0], [k])
+        self.U = self._zeropad(self.U, [0], [k])
 
 class BlockArnoldiDecomposition(ArnoldiDecomposition):
-    def __init__(self, reorth_tol=0.7):
-        super().__init__(reorth_tol)
+    """
+    Implements the Krylov-decomposition of a matrix or linear operator A with
+    the block Arnoldi method [3]. The decomposition consists of an orthogonal
+    matrix U and a upper Hessenberg matrix H which satisfy
 
-    def initialize(self, X):
+        A @ U[:, :k] = U[:, :k+1] @ H
+
+    after k iterations of the Arnoldi method.
+
+    Attributes
+    ----------
+    .compute(A, X, k, ...)
+        Compute Krylov decomposition of a linear operator A for starting
+        matrix X with k Arnoldi iterations.
+    .refine(k, ...)
+        Refine Krylov decomposition with k additional Arnoldi iterations.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from roughly.approximate.krylov import BlockArnoldiDecomposition
+    >>> decomposition = BlockArnoldiDecomposition()
+    >>> A = np.random.randn(100, 100)
+    >>> X = np.random.randn(100, 2)
+    >>> U, H = decomposition.compute(A, X, 10)
+    >>> np.testing.assert_allclose(A @ U[:, :-2] - U @ H, 0, atol=1e-10)
+    >>> U, H = decomposition.refine(1)
+    >>> np.testing.assert_allclose(A @ U[:, :-2] - U @ H, 0, atol=1e-10)
+
+    [3] Jaimoukha, I. M. and Kasenally, E. M. (1994). "Krylov Subspace Methods
+    for Solving Large Lyapunov Equations". SIAM Journal on Numerical Analysis.
+    31 (1): 227-251. doi:10.1137/0731012.
+    """
+    def __init__(self):
+        super().__init__()
+
+    def _initialize(self, X):
         self.H = np.zeros((self.k + 1, self.k, self.m, self.m), dtype=self.dtype)
         self.U = np.empty((self.k + 1, self.n, self.m), dtype=self.dtype)
 
         self.U[0], _ = np.linalg.qr(X)
 
-    def iterate(self, j):
+    def _iterate(self, j):
 
         # New set of vectors
         w = self.matvec(self.U[j])
@@ -210,22 +368,66 @@ class BlockArnoldiDecomposition(ArnoldiDecomposition):
         self.U[j + 1] = Q
         self.H[j + 1, j] = R
 
-    def result(self):
+    def _result(self):
         U = np.einsum("ijk->jik", self.U).reshape(self.n, -1)
         H = np.einsum("ijkl->ikjl", self.H).reshape(((self.k + 1) * self.m, self.k * self.m))
 
         return U, H
 
 class BlockLanczosDecomposition(LanczosDecomposition):
-    def __init__(self, reorth_tol=0.7, return_matrix=True, extend_matrix=True, reorth_steps=100):
+    """
+    Implements the Krylov-decomposition of a matrix or linear operator A with
+    the block Lanczos method [4]. The decomposition consists of an orthogonal
+    matrix U and a tridiagonal matrix H which satisfy
+
+        A @ U[:, :k] = U[:, :k+1] @ H
+
+    after k iterations of the Lanczos method.
+
+    Parameters
+    ----------
+    return_matrix : bool
+        Whether to return the (full) tridiagonal matrix H or arrays of its
+        diagonal and off-diagonal elements. 
+    return_matrix : bool
+        Whether to extend the orthogonal matrix U with one more column after
+        the last iteration.
+    reorth_steps : int
+        The number of iterations in which to reorthogonalize. To always 
+        reorthogonalize, use -1.
+    
+    Attributes
+    ----------
+    .compute(A, X, k, ...)
+        Compute Krylov decomposition of a linear operator A for starting
+        vector(s) X with k Arnoldi iterations.
+    .refine(k, ...)
+        Refine Krylov decomposition with k additional Lanczos iterations.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from roughly.approximate.krylov import BlockLanczosDecomposition
+    >>> decomposition = BlockLanczosDecomposition()
+    >>> A = np.random.randn(100, 100)
+    >>> A = A + A.T
+    >>> X = np.random.randn(100, 2)
+    >>> U, H = decomposition.compute(A, X, 10)
+    >>> np.testing.assert_allclose(A @ U[:, :-2] - U @ H, 0, atol=1e-10)
+    >>> U, H = decomposition.refine(1)
+    >>> np.testing.assert_allclose(A @ U[:, :-2] - U @ H, 0, atol=1e-10)
+
+    [4] Montgomery, P. L. (1995). "A Block Lanczos Algorithm for Finding
+        Dependencies over GF(2)". Lecture Notes in Computer Science. EUROCRYPT.
+        Vol. 921. Springer-Verlag. pp. 106–120. doi:10.1007/3-540-49264-X_9.
+    """
+    def __init__(self, return_matrix=True, extend_matrix=True, reorth_steps=-1):
         self.return_matrix = return_matrix
         self.extend_matrix = extend_matrix
-        self.reorth_steps = 100
-        if reorth_steps == -1:
-            self.reorth_steps = 100
-        super().__init__(reorth_tol)
+        self.reorth_steps = reorth_steps
+        super().__init__()
 
-    def initialize(self, X):
+    def _initialize(self, X):
 
         # Initialize arrays for storing the block-tridiagonal elements
         self.a = np.empty((self.k, self.m, self.m), dtype=self.dtype)
@@ -234,14 +436,14 @@ class BlockLanczosDecomposition(LanczosDecomposition):
 
         self.U[0], self.b[0] = np.linalg.qr(X)
 
-    def iterate(self, j):
+    def _iterate(self, j):
         # New set of vectors
         w = self.matvec(self.U[j])
         self.a[j] = self.U[j].conj().T @ w
         u_tilde = w - self.U[j] @ self.a[j] - (self.U[j-1] @ self.b[j].conj().T if j > 0 else 0)
 
         # reorthogonalization
-        if j > 0 and self.reorth_steps > j:
+        if j > 0 and (self.reorth_steps > j or self.reorth_steps == -1):
             h_hat = np.swapaxes(self.U[:j], 0, 1).reshape(self.n, -1).conj().T @ u_tilde
             self.a[j] += h_hat[-1]
             u_tilde = u_tilde - np.swapaxes(self.U[:j], 0, 1).reshape(self.n, -1) @ h_hat
@@ -251,7 +453,7 @@ class BlockLanczosDecomposition(LanczosDecomposition):
         self.b[j + 1] = R[:, np.argsort(p)]
 
         # Orthogonalize again if R is rank deficient
-        if self.reorth_steps > j:
+        if self.reorth_steps > j or self.reorth_steps == -1:
             r = np.abs(np.diag(self.b[j + 1]))
             r_idx = np.nonzero(r < np.max(r) * 1e-10)[0]
             z_tilde[:, r_idx] = z_tilde[:, r_idx] - self.U[j] @ (self.U[j].conj().T @ z_tilde[:, r_idx])
@@ -259,7 +461,7 @@ class BlockLanczosDecomposition(LanczosDecomposition):
             z_tilde[:, r_idx] *= np.sign(np.diag(R))
             self.U[j + 1] = z_tilde
 
-    def result(self):
+    def _result(self):
  
         U = np.einsum("ijk->jik", self.U).reshape(self.n, -1)
 
