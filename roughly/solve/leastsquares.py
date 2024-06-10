@@ -1,2 +1,0 @@
-# Sketch and solve
-# 

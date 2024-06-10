@@ -56,7 +56,7 @@ class KrylovDecomposition(metaclass=ABCMeta):
         Return the matrices which define the decomposition.
         """
         pass
-   
+
     @abstractmethod
     def _extend(self, k):
         """
@@ -64,7 +64,7 @@ class KrylovDecomposition(metaclass=ABCMeta):
         """
         pass
 
-    def compute(self, A, X, k=100, dtype=None):
+    def compute(self, A, X, k=10, dtype=None):
         """
         Compute Krylov decomposition of a linear operator
 
@@ -112,9 +112,9 @@ class KrylovDecomposition(metaclass=ABCMeta):
 
         Returns
         -------
-        U : np.ndarray of shape (n, k + 1) or (m, n, k + 1)
+        U : np.ndarray of shape (n, ... + k + 1) or (m, n, ... + k + 1)
             Orthogonal basis of the Krylov subspace of A for X.
-        H : np.ndarray of shape (k + 1, k) or (m, k + 1, k)
+        H : np.ndarray of shape (... + k + 1, ... + k) or (m, ... + k + 1, ... + k)
             Hessenberg matrix.
         """
 
@@ -209,9 +209,9 @@ class ArnoldiDecomposition(KrylovDecomposition):
 
 class LanczosDecomposition(KrylovDecomposition):
     """
-    Implements the Krylov-decomposition of a matrix or linear operator A with
-    the Lanczos method [2]. The decomposition consists of an orthogonal matrix U
-    and a tridiagonal matrix H which satisfy
+    Implements the Krylov-decomposition of a Hermitian matrix or linear operator
+    A with the Lanczos method [2]. The decomposition consists of an orthogonal
+    matrix U and a Hermitian tridiagonal matrix H which satisfy
 
         A @ U[:, :k] = U[:, :k+1] @ H
 
@@ -223,7 +223,7 @@ class LanczosDecomposition(KrylovDecomposition):
         The tolerance for reorthogonalizing the Krylov basis between iterations.
     return_matrix : bool
         Whether to return the (full) tridiagonal matrix H or arrays of its
-        diagonal and off-diagonal elements. 
+        diagonal and off-diagonal elements.
     return_matrix : bool
         Whether to extend the orthogonal matrix U with one more column after
         the last iteration.
@@ -231,8 +231,8 @@ class LanczosDecomposition(KrylovDecomposition):
     Attributes
     ----------
     .compute(A, X, k, ...)
-        Compute Krylov decomposition of a linear operator A for starting
-        vector(s) X with k Lanczos iterations.
+        Compute Krylov decomposition of a Hermitian linear operator A for
+        starting vector(s) X with k Lanczos iterations.
     .refine(k, ...)
         Refine Krylov decomposition with k additional Lanczos iterations.
 
@@ -376,9 +376,9 @@ class BlockArnoldiDecomposition(ArnoldiDecomposition):
 
 class BlockLanczosDecomposition(LanczosDecomposition):
     """
-    Implements the Krylov-decomposition of a matrix or linear operator A with
-    the block Lanczos method [4]. The decomposition consists of an orthogonal
-    matrix U and a tridiagonal matrix H which satisfy
+    Implements the Krylov-decomposition of a Hermitian matrix or linear operator
+    A with the block Lanczos method [4]. The decomposition consists of an
+    orthogonal matrix U and a Hermitian tridiagonal matrix H which satisfy
 
         A @ U[:, :k] = U[:, :k+1] @ H
 
@@ -388,19 +388,19 @@ class BlockLanczosDecomposition(LanczosDecomposition):
     ----------
     return_matrix : bool
         Whether to return the (full) tridiagonal matrix H or arrays of its
-        diagonal and off-diagonal elements. 
+        diagonal and off-diagonal elements.
     return_matrix : bool
         Whether to extend the orthogonal matrix U with one more column after
         the last iteration.
     reorth_steps : int
-        The number of iterations in which to reorthogonalize. To always 
+        The number of iterations in which to reorthogonalize. To always
         reorthogonalize, use -1.
-    
+
     Attributes
     ----------
     .compute(A, X, k, ...)
-        Compute Krylov decomposition of a linear operator A for starting
-        vector(s) X with k Arnoldi iterations.
+        Compute Krylov decomposition of a Hermitian linear operator A for
+        starting vector(s) X with k Arnoldi iterations.
     .refine(k, ...)
         Refine Krylov decomposition with k additional Lanczos iterations.
 
@@ -420,6 +420,9 @@ class BlockLanczosDecomposition(LanczosDecomposition):
     [4] Montgomery, P. L. (1995). "A Block Lanczos Algorithm for Finding
         Dependencies over GF(2)". Lecture Notes in Computer Science. EUROCRYPT.
         Vol. 921. Springer-Verlag. pp. 106–120. doi:10.1007/3-540-49264-X_9.
+    [5] Chen T. and Hallman, E. (2023). "Krylov-Aware Stochastic Trace
+        Estimation". SIAM Journal on Matrix Analysis and ApplicationsVol.
+        44 (3). doi:10.1137/22M1494257.
     """
     def __init__(self, return_matrix=True, extend_matrix=True, reorth_steps=-1):
         self.return_matrix = return_matrix
@@ -462,7 +465,7 @@ class BlockLanczosDecomposition(LanczosDecomposition):
             self.U[j + 1] = z_tilde
 
     def _result(self):
- 
+
         U = np.einsum("ijk->jik", self.U).reshape(self.n, -1)
 
         if self.return_matrix:
