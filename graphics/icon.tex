@@ -1,0 +1,38 @@
+\documentclass{standalone}
+
+\usepackage{tikz}
+\usepackage{avant}
+\renewcommand\familydefault{\sfdefault}
+
+% Color package
+\usepackage{xcolor}
+\definecolor{background}{HTML}{0d1117}
+
+\begin{document}
+
+\pagecolor{background}
+\begin{tikzpicture}
+    \fill[background] (-3, -0.5) rectangle (3, 0.8);
+    \node[white] at (0.75, 0.15) {\huge roughly};
+
+    \draw[white, line width=1] (-0.9, -0.3) to (-0.9, 0.6);
+    \begin{scope}[shift={(-1.75, 0.2)}]
+        \draw[white, line width=1pt] (0, -0.5) to (0, 0);
+        \draw[white, line width=1pt] (0, 0) to (0.45, 0.25);
+        \draw[white, line width=1pt] (0, 0) to (-0.45, 0.25);
+        
+        \fill[white, rotate around={-60:(-0.25, -0.145)}] (-0.25, -0.145) ellipse (2.4pt and 1.3pt); 
+        
+        \fill[white, rotate around={60:(0.15, -0.085)}] (0.15, -0.085) ellipse (2.4pt and 1.3pt);
+        \fill[white, rotate around={60:(0.25, -0.145)}] (0.25, -0.145) ellipse (2.4pt and 1.3pt);
+        \fill[white, rotate around={60:(0.35, -0.205)}] (0.35, -0.205) ellipse (2.4pt and 1.3pt);
+
+        \fill[white] (0, 0.42) ellipse (2.4pt and 1.3pt);
+        \fill[white] (0, 0.3) ellipse (2.4pt and 1.3pt);
+        \fill[white] (0, 0.18) ellipse (2.4pt and 1.3pt);
+        \fill[white] (-0.23, 0.3) ellipse (2.4pt and 1.3pt);
+        \fill[white] (0.23, 0.3) ellipse (2.4pt and 1.3pt);
+    \end{scope}
+\end{tikzpicture}
+
+\end{document}
