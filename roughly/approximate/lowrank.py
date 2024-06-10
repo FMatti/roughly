@@ -7,10 +7,10 @@ Methods for randomized range sketching of a linear operator.
 
 import numpy as np
 from abc import ABCMeta, abstractmethod
-from roughly.approximate.sketch import StandardSketch
+from roughly.approximate.sketch import RangeSketch, StandardSketch
 
 class LowRankApproximator(metaclass=ABCMeta):
-    def __init__(self, sketch=StandardSketch()):
+    def __init__(self, sketch : RangeSketch = StandardSketch()):
         self.sketch = sketch
 
     def _preprocess(self, A, k):
@@ -24,7 +24,7 @@ class LowRankApproximator(metaclass=ABCMeta):
     def _factorize(self):
         pass
 
-    def compute(self, A, k=10):
+    def compute(self, A : np.ndarray, k : int = 10):
         """
         Compute the low-rank factorization.
 
@@ -49,7 +49,7 @@ class LowRankApproximator(metaclass=ABCMeta):
         U, S, Vh = self._factorize()
         return U, S, Vh
 
-    def refine(self, k=1):
+    def refine(self, k : int = 1):
         """
         Refine the low-rank factorization to a rank higher by k.
 

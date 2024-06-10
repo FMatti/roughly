@@ -7,11 +7,12 @@ Methods for randomized range sketching of a linear operator.
 
 import numpy as np
 from abc import ABCMeta, abstractmethod
+from typing import Union
 
 from roughly.core.random import gaussian, rademacher, spherical
 
 class RangeSketch(metaclass=ABCMeta):
-    def __init__(self, rng="gaussian", orthogonal=True):
+    def __init__(self, rng : Union[str, function] = "gaussian", orthogonal : bool = True):
         self.orthogonal = orthogonal
         if isinstance(rng, str):
             self.rng = eval(rng)
@@ -20,7 +21,7 @@ class RangeSketch(metaclass=ABCMeta):
         else:
             raise ValueError("'{}' is not a valid random number generation.".format(rng))
 
-    def preprocess(self, A, k, n=None, dtype=None):
+    def _preprocess(self, A, k, n=None, dtype=None):
         self.k = k
         self.n = A.shape[0] if n is None else n
 
@@ -51,10 +52,10 @@ class StandardSketch(RangeSketch):
     orthogonal : bool
         Whether to orthogonalize the range sketch or not.
     """
-    def __init__(self, rng="gaussian", orthogonal=True):
+    def __init__(self, rng : Union[str, function] = "gaussian", orthogonal : bool = True):
         super().__init__(rng, orthogonal)
 
-    def compute(self, A, k=10, n=None, dtype=None, return_embedding=False):
+    def compute(self, A : Union[np.ndarray, function], k : int = 10, n : Union[int, None] = None, dtype  : Union[type, None] = None, return_embedding : bool = False):
         """
         Compute a randomized range sketch for the linear operator A.
 
@@ -81,7 +82,7 @@ class StandardSketch(RangeSketch):
         self.Q : np.ndarray of shape (n, k)
             Approximated range of the linear operator A.
         """
-        self.preprocess(A, k, n, dtype)
+        self._preprocess(A, k, n, dtype)
 
         # Generate embedding and sketch linear operator
         self.S = self.rng(self.n, k)
@@ -94,7 +95,7 @@ class StandardSketch(RangeSketch):
             return self.Q, self.S
         return self.Q
 
-    def refine(self, k=10, return_embedding=False):
+    def refine(self, k : int = 10, return_embedding : bool = False):
         """
         Increase the size of a randomized range sketch for a linear operator.
 

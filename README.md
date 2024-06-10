@@ -11,9 +11,11 @@
 
 ## About
 
-A majority of algorithms in randomized numerical linear algebra are sequential and additive in nature. However, many implementations do not effectively exploit this structure. Often, once an insufficiently accurate result is observed, the computation is often restarted from the beginning with a modified parameter set. This results in highly inefficient workflows.
+A majority of algorithms in randomized numerical linear algebra are sequential and additive in nature. However, many implementations do not effectively exploit this structure. Often, once an insufficiently accurate result is observed, the computation is restarted from the beginning with a modified parameter set. This results in highly inefficient workflows.
 
 The goal of roughly is to collect the most widespread algorithms of randomized numerical linear algebra and wrap them into an easy to use package where previous computations are stored in memory and available for the user to be reused.
+
+This project was based on the course [Advanced Scientific Programming in Python](https://github.com/JochenHinz/python_seminar) by Jochen Hinz.
 
 ## Example
 
@@ -52,34 +54,4 @@ import roughly as rly
 
 ## Features
 
-- Most implementations in roughly also work for linear operator only available as function handles instead of matrices
-- ...
-
-## Algorithms
-
-Currently, the following algorithms are implemented:
-
-### Krylov methods
-
-- Arnoldi method
-- Block Anroldi method
-- Lanczos method
-- Block Lanczos method
-
-### Low-rank approximations
-
-- Randomized SVD
-- Nyström approximation
-
-### Sketching
-
-- Randomized range finder
-- Subsampled randomized Hadamard transform (in progress)
-
-### Trace estimation
-
-- Hutchinson trace estimator
-- Subspace projection
-- Hutch++ trace estimator
-- Krylov-aware trace estimator (in progress)
-- XTrace (in progress)
+Most implementations in roughly also work for linear operator only available as function handles instead of matrices. Currently, roughly implements the Arnoldi, Lanczos, and blocked versions of them; the randomized SVD and Nyström approximation; the randomized range sketch; and the Girard-Hutchinson, subspace projection, and Hutch++ algorithms.

@@ -8,6 +8,7 @@ Collection of methods for computing Krylov-space matrix decompositions.
 import numpy as np
 import scipy as sp
 from abc import ABCMeta, abstractmethod
+from typing import Union
 
 class KrylovDecomposition(metaclass=ABCMeta):
     def __init__(self):
@@ -64,7 +65,7 @@ class KrylovDecomposition(metaclass=ABCMeta):
         """
         pass
 
-    def compute(self, A, X, k=10, dtype=None):
+    def compute(self, A : Union[np.ndarray, function], X : np.ndarray, k : int = 10, dtype : bool = None):
         """
         Compute Krylov decomposition of a linear operator
 
@@ -101,7 +102,7 @@ class KrylovDecomposition(metaclass=ABCMeta):
 
         return self._result()
 
-    def refine(self, k=1):
+    def refine(self, k : int = 1):
         """
         Refine the existing Krylov decomposition of a linear operator,
 
@@ -168,7 +169,7 @@ class ArnoldiDecomposition(KrylovDecomposition):
         solution of the matrix eigenvalue problem". Quarterly of Applied
         Mathematics. 9 (1): 17–29. doi:10.1090/qam/42792.
     """
-    def __init__(self, reorth_tol=0.7):
+    def __init__(self, reorth_tol : float = 0.7):
         self.reorth_tol = reorth_tol
         super().__init__()
 
@@ -254,7 +255,7 @@ class LanczosDecomposition(KrylovDecomposition):
         Journal of Research of the National Bureau of Standards. 45 (4): 255–282.
         doi:10.6028/jres.045.026.
     """
-    def __init__(self, reorth_tol=0.7, return_matrix=True, extend_matrix=True):
+    def __init__(self, reorth_tol : float = 0.7, return_matrix : bool = True, extend_matrix : bool = True):
         self.return_matrix = return_matrix
         self.extend_matrix = extend_matrix
         self.reorth_tol = reorth_tol
@@ -424,7 +425,7 @@ class BlockLanczosDecomposition(LanczosDecomposition):
         Estimation". SIAM Journal on Matrix Analysis and ApplicationsVol.
         44 (3). doi:10.1137/22M1494257.
     """
-    def __init__(self, return_matrix=True, extend_matrix=True, reorth_steps=-1):
+    def __init__(self, return_matrix : bool = True, extend_matrix : bool = True, reorth_steps : int = -1):
         self.return_matrix = return_matrix
         self.extend_matrix = extend_matrix
         self.reorth_steps = reorth_steps
