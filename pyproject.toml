@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "roughly"
+version = "0.0.1"
+authors = [
+  { name="Fabio Matti", email="fabio.matti@epfl.ch" },
+]
+description = "Randomized linear algebra package"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/FMatti/roughly"
+Issues = "https://github.com/FMatti/roughly/issues"

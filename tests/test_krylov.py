@@ -1,5 +1,7 @@
+import __context__
+
 import numpy as np
-from krylov import ArnoldiDecomposition, BlockArnoldiDecomposition, LanczosDecomposition, BlockLanczosDecomposition
+from roughly.approximate.krylov import ArnoldiDecomposition, BlockArnoldiDecomposition, LanczosDecomposition, BlockLanczosDecomposition
 
 def test_ArnoldiDecomposition():
     n = 100

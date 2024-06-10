@@ -1,5 +1,7 @@
+import __context__
+
 import numpy as np
-from trace import HutchinsonTraceEstimator
+from roughly.approximate.trace import HutchinsonTraceEstimator
 
 def test_HutchinsonTraceEstimator():
     n = 100
