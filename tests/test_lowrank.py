@@ -2,7 +2,8 @@ import __context__
 
 import numpy as np
 from roughly.approximate.lowrank import RandomizedSVD, NystromApproximation
-from roughly.approximate.sketch import StandardSketch
+
+np.random.seed(42)
 
 def approximation_quality(A, k, U, S, Vh):
     U_svd, S_svd, Vh_svd = np.linalg.svd(A)

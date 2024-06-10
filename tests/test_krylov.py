@@ -3,6 +3,8 @@ import __context__
 import numpy as np
 from roughly.approximate.krylov import ArnoldiDecomposition, BlockArnoldiDecomposition, LanczosDecomposition, BlockLanczosDecomposition
 
+np.random.seed(42)
+
 def test_ArnoldiDecomposition():
     n = 100
     k = 10

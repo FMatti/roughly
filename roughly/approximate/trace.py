@@ -56,12 +56,12 @@ class HutchinsonTraceEstimator(TraceEstimator):
 
 class SubspaceProjectionEstimator(TraceEstimator):
     def __init__(self, rng="gaussian"):
-        super().__init__(rng)
         self.sketch = StandardSketch(rng)
+        super().__init__(rng)
 
     def compute(self, A, k=10, n=None, dtype=None):
-        self.preprocess(A, k, n=n, dtype=dtype)
-        self.Q = self.sketch.compute(self.matvec, k=k // 3)
+        self.preprocess(A, k, n, dtype=dtype)
+        self.Q = self.sketch.compute(A, k=k, n=self.n, dtype=self.dtype)
         self.est = np.trace(self.Q.T @ self.matvec(self.Q))
         return self.est
 
@@ -73,12 +73,12 @@ class SubspaceProjectionEstimator(TraceEstimator):
 
 class DeflatedTraceEstimator(TraceEstimator):
     def __init__(self, rng="gaussian"):
-        super().__init__(rng)
         self.sketch = StandardSketch(rng)
+        super().__init__(rng)
 
     def compute(self, A, k=10, n=None, dtype=None):
-        self.preprocess(A, k, n=n, dtype=dtype)
-        self.Q = self.sketch.compute(self.matvec, k=k // 3)
+        self.preprocess(A, k, n, dtype=dtype)
+        self.Q = self.sketch.compute(A, k=k // 3, n=self.n, dtype=self.dtype)
         G = self.rng(self.n, k // 3)
         G = G - self.Q @ (self.Q.T @ G)
         self.est = np.trace(self.Q.T @ self.matvec(self.Q)) + 1 / G.shape[-1] * np.trace(G.T @ self.matvec(G))
