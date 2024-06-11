@@ -22,7 +22,7 @@ This project is based on the doctoral course [Advanced Scientific Programming in
 Suppose you need to compute a basis of the Krylov subspace
 
 $$
-\mathcal{K}^{k}(\boldsymbol{A}, \boldsymbol{x}) = \operatorname{span}\left\{ \boldsymbol{x}, \boldsymbol{A}\boldsymbol{x}, \boldsymbol{A}^2\boldsymbol{x}, \dots, \boldsymbol{A}^{k-1}\boldsymbol{x} \right\}.
+\mathcal{K}^{k}(\boldsymbol{A}, \boldsymbol{x}) = \mathrm{span}\left\{ \boldsymbol{x}, \boldsymbol{A}\boldsymbol{x}, \boldsymbol{A}^2\boldsymbol{x}, \dots, \boldsymbol{A}^{k-1}\boldsymbol{x} \right\}.
 $$
 
 We do this by running $k$ iterations of the Arnoldi method.
