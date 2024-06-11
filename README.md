@@ -22,10 +22,10 @@ This project is based on the doctoral course [Advanced Scientific Programming in
 Suppose you need to compute a basis of the Krylov subspace
 
 $$
-\mathcal{K}^{k}(\boldsymbol{A}, \boldsymbol{x}) = \mathrm{span}\left\{ \boldsymbol{x}, \boldsymbol{A}\boldsymbol{x}, \boldsymbol{A}^2\boldsymbol{x}, \dots, \boldsymbol{A}^{k-1}\boldsymbol{x} \right\}.
+\mathcal{K}^{k}(\boldsymbol{A}, \boldsymbol{x}) = \mathrm{span}\big\{ \boldsymbol{x}, \boldsymbol{A}\boldsymbol{x}, \boldsymbol{A}^2\boldsymbol{x}, \dots, \boldsymbol{A}^{k-1}\boldsymbol{x} \big\}.
 $$
 
-We do this by running $k$ iterations of the Arnoldi method.
+We do this by running $k$ iterations of the Arnoldi method:
 
 ```python
 import numpy as np
@@ -38,7 +38,7 @@ x = np.random.randn(100)  # Example starting vector
 basis, _ = arnoldi.compute(A, x, k=10)
 ```
 
-After $k$ iterations of the Arnoldi method you proceed with your computations, but realize your basis is not sufficient for these purposes. In these cases, _roughly_ makes it easy to "refine" the approximation with additional iterations.
+After $k$ iterations of the Arnoldi method you proceed with your computations, but realize your basis is not sufficient for these purposes. In these cases, _roughly_ makes it easy to "refine" the approximation with additional iterations:
 
 ```python
 refined_basis, _ = arnoldi.refine(k=10)
@@ -59,6 +59,14 @@ and then import it with
 ```python
 import roughly as rly
 ```
+
+You can also test the package with [pytest](https://docs.pytest.org/en/8.2.x/) by running the command
+
+```
+pytest
+```
+
+in the root directory of the repository.
 
 ## Features
 
