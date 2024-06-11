@@ -12,7 +12,7 @@ from typing import Union
 from roughly.core.random import gaussian, rademacher, spherical
 
 class RangeSketch(metaclass=ABCMeta):
-    def __init__(self, rng : Union[str, function] = "gaussian", orthogonal : bool = True):
+    def __init__(self, rng : Union[str, callable] = "gaussian", orthogonal : bool = True):
         self.orthogonal = orthogonal
         if isinstance(rng, str):
             self.rng = eval(rng)
@@ -25,7 +25,7 @@ class RangeSketch(metaclass=ABCMeta):
         self.k = k
         self.n = A.shape[0] if n is None else n
 
-        self.matvec = lambda x: A @ x if isinstance(A, np.ndarray) else A
+        self.matvec = (lambda x: A @ x) if isinstance(A, np.ndarray) else A
         self.dtype = A.dtype if dtype is None else dtype
 
     @abstractmethod
@@ -42,7 +42,7 @@ class StandardSketch(RangeSketch):
 
     Parameters
     ----------
-    rng : function or str
+    rng : callable or str
         Distribution to generator the randomized embedding with. Either a
         function whose arguments are the sizes of the axes of the randomized
         embedding or one of the following strings:
@@ -52,16 +52,16 @@ class StandardSketch(RangeSketch):
     orthogonal : bool
         Whether to orthogonalize the range sketch or not.
     """
-    def __init__(self, rng : Union[str, function] = "gaussian", orthogonal : bool = True):
+    def __init__(self, rng : Union[str, callable] = "gaussian", orthogonal : bool = True):
         super().__init__(rng, orthogonal)
 
-    def compute(self, A : Union[np.ndarray, function], k : int = 10, n : Union[int, None] = None, dtype  : Union[type, None] = None, return_embedding : bool = False):
+    def compute(self, A : Union[np.ndarray, callable], k : int = 10, n : Union[int, None] = None, dtype  : Union[type, None] = None, return_embedding : bool = False):
         """
         Compute a randomized range sketch for the linear operator A.
 
         Parameters
         ----------
-        A : np.ndarray of shape (n, n) or function
+        A : np.ndarray of shape (n, n) or callable
             The matrix or linear operator (given as function handle) for which a
             basis of the Krylov subspace is computed.
         X : np.ndarray of shape (n) or (n, m)

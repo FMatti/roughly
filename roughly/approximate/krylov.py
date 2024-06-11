@@ -23,7 +23,7 @@ class KrylovDecomposition(metaclass=ABCMeta):
         self.n, self.m = X.shape
         self.k = k
 
-        self.matvec = lambda x: A @ x if isinstance(A, np.ndarray) else A
+        self.matvec = (lambda x: A @ x) if isinstance(A, np.ndarray) else A
         self.dtype = A.dtype if dtype is None else dtype
         return X
 
@@ -61,11 +61,11 @@ class KrylovDecomposition(metaclass=ABCMeta):
     @abstractmethod
     def _extend(self, k):
         """
-        Extend the matrices which define the decomposition to k more iterations.
+        Extend the decomposition matrices for k more iterations.
         """
         pass
 
-    def compute(self, A : Union[np.ndarray, function], X : np.ndarray, k : int = 10, dtype : bool = None):
+    def compute(self, A : Union[np.ndarray, callable], X : np.ndarray, k : int = 10, dtype : bool = None):
         """
         Compute Krylov decomposition of a linear operator
 
@@ -75,7 +75,7 @@ class KrylovDecomposition(metaclass=ABCMeta):
 
         Parameters
         ----------
-        A : np.ndarray of shape (n, n) or function
+        A : np.ndarray of shape (n, n) or callable
             The matrix or linear operator (given as function handle) for which a
             basis of the Krylov subspace is computed.
         X : np.ndarray of shape (n) or (n, m)

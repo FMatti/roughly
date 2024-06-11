@@ -30,7 +30,7 @@ class LowRankApproximator(metaclass=ABCMeta):
 
         Parameters
         ----------
-        A : np.ndarray of shape (n, m) or function
+        A : np.ndarray of shape (n, m) or callable
             The matrix for which a low-rank factorization is computed.
         k : int >= 1
             The target rank.

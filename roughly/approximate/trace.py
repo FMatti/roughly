@@ -16,7 +16,7 @@ from roughly.core.random import gaussian, rademacher, spherical
 from roughly.approximate.sketch import StandardSketch
 
 class TraceEstimator(metaclass=ABCMeta):
-    def __init__(self, rng : Union[str, function] = "gaussian"):
+    def __init__(self, rng : Union[str, callable] = "gaussian"):
         if isinstance(rng, str):
             self.rng = eval(rng)
         elif isinstance(rng, function):
@@ -31,7 +31,7 @@ class TraceEstimator(metaclass=ABCMeta):
         self.k = k
         self.n = A.shape[0] if n is None else n
 
-        self.matvec = lambda x: A @ x if isinstance(A, np.ndarray) else A
+        self.matvec = (lambda x: A @ x) if isinstance(A, np.ndarray) else A
         self.dtype = A.dtype if dtype is None else dtype
 
     @abstractmethod
@@ -49,7 +49,7 @@ class HutchinsonTraceEstimator(TraceEstimator):
 
     Parameters
     ----------
-    rng : function or str
+    rng : callable or str
         Distribution to generator the randomized embedding with. Either a
         function whose arguments are the sizes of the axes of the randomized
         embedding or one of the following strings:
@@ -80,16 +80,16 @@ class HutchinsonTraceEstimator(TraceEstimator):
     large least squares problems with noisy data". Numerische Mathematik.
     56 (1): 1-23. doi:10.1007/BF01395775.
     """
-    def __init__(self, rng : Union[str, function] = "gaussian"):
+    def __init__(self, rng : Union[str, callable] = "gaussian"):
         super().__init__(rng)
 
-    def compute(self, A : Union[np.ndarray, function], k : int = 10, n : Union[int, None] = None, dtype : Union[type, None] = None):
+    def compute(self, A : Union[np.ndarray, callable], k : int = 10, n : Union[int, None] = None, dtype : Union[type, None] = None):
         """
         Compute the trace estimate.
 
         Parameters
         ----------
-        A : np.ndarray of shape (n, n) or function
+        A : np.ndarray of shape (n, n) or callable
             The matrix or linear operator (given as function handle) for which a
             basis of the trace is computed.
         k : int >= 1
@@ -108,7 +108,7 @@ class HutchinsonTraceEstimator(TraceEstimator):
         """
         self._preprocess(A, k, n, dtype=dtype)
         V = self.rng(self.n, self.k)
-        self.est = np.trace(V.T @ self.matvec(V)) / self.k
+        self.est = np.sum(V.conj() * self.matvec(V)) / self.k
         return self.est
 
     def refine(self, k : int = 1):
@@ -126,7 +126,7 @@ class HutchinsonTraceEstimator(TraceEstimator):
             Trace estimate.
         """
         V = self.rng(self.n, k)
-        self.est = (self.est * self.k + np.trace(V.T @ self.matvec(V))) / (k + self.k)
+        self.est = (self.est * self.k + np.sum(V.conj() * self.matvec(V))) / (k + self.k)
         self.k += k
         return self.est
 
@@ -136,7 +136,7 @@ class SubspaceProjectionEstimator(TraceEstimator):
 
     Parameters
     ----------
-    rng : function or str
+    rng : callable or str
         Distribution to generator the randomized embedding with. Either a
         function whose arguments are the sizes of the axes of the randomized
         embedding or one of the following strings:
@@ -167,17 +167,17 @@ class SubspaceProjectionEstimator(TraceEstimator):
         "Hutch++: Optimal Stochastic Trace Estimation". Symposium on Simplicity
         in Algorithms (SOSA). doi:10.1137/1.9781611976496.16.
     """
-    def __init__(self, rng : Union[str, function] = "gaussian"):
+    def __init__(self, rng : Union[str, callable] = "gaussian"):
         self.sketch = StandardSketch(rng)
         super().__init__(rng)
 
-    def compute(self, A : Union[np.ndarray, function], k : int = 10, n : Union[int, None] = None, dtype : Union[type, None] = None):
+    def compute(self, A : Union[np.ndarray, callable], k : int = 10, n : Union[int, None] = None, dtype : Union[type, None] = None):
         """
         Compute the trace estimate.
 
         Parameters
         ----------
-        A : np.ndarray of shape (n, n) or function
+        A : np.ndarray of shape (n, n) or callable
             The matrix or linear operator (given as function handle) for which a
             basis of the trace is computed.
         k : int >= 1
@@ -195,8 +195,8 @@ class SubspaceProjectionEstimator(TraceEstimator):
             Trace estimate.
         """
         self._preprocess(A, k, n, dtype=dtype)
-        self.Q = self.sketch.compute(A, k=k, n=self.n, dtype=self.dtype)
-        self.est = np.trace(self.Q.T @ self.matvec(self.Q))
+        self.Q = self.sketch.compute(self.matvec, k=k, n=self.n, dtype=self.dtype)
+        self.est = np.sum(self.Q.conj() * self.matvec(self.Q))
         return self.est
 
     def refine(self, k : int = 1):
@@ -214,7 +214,7 @@ class SubspaceProjectionEstimator(TraceEstimator):
             Trace estimate.
         """
         self.Q = self.sketch.refine(k=k)
-        self.est = np.trace(self.Q.T @ self.matvec(self.Q))
+        self.est = np.sum(self.Q.conj() * self.matvec(self.Q))
         self.k += k
         return self.est
 
@@ -224,7 +224,7 @@ class DeflatedTraceEstimator(TraceEstimator):
 
     Parameters
     ----------
-    rng : function or str
+    rng : callable or str
         Distribution to generator the randomized embedding with. Either a
         function whose arguments are the sizes of the axes of the randomized
         embedding or one of the following strings:
@@ -255,17 +255,17 @@ class DeflatedTraceEstimator(TraceEstimator):
         "Hutch++: Optimal Stochastic Trace Estimation". Symposium on Simplicity
         in Algorithms (SOSA). doi:10.1137/1.9781611976496.16.
     """
-    def __init__(self, rng : Union[str, function] = "gaussian"):
+    def __init__(self, rng : Union[str, callable] = "gaussian"):
         self.sketch = StandardSketch(rng)
         super().__init__(rng)
 
-    def compute(self, A : Union[np.ndarray, function], k : int = 10, n : Union[int, None] = None, dtype : Union[type, None] = None):
+    def compute(self, A : Union[np.ndarray, callable], k : int = 10, n : Union[int, None] = None, dtype : Union[type, None] = None):
         """
         Compute the trace estimate.
 
         Parameters
         ----------
-        A : np.ndarray of shape (n, n) or function
+        A : np.ndarray of shape (n, n) or callable
             The matrix or linear operator (given as function handle) for which a
             basis of the trace is computed.
         k : int >= 1
@@ -283,10 +283,10 @@ class DeflatedTraceEstimator(TraceEstimator):
             Trace estimate.
         """
         self._preprocess(A, k, n, dtype=dtype)
-        self.Q = self.sketch.compute(A, k=k // 3, n=self.n, dtype=self.dtype)
+        self.Q = self.sketch.compute(self.matvec, k=k // 3, n=self.n, dtype=self.dtype)
         G = self.rng(self.n, k // 3)
         G = G - self.Q @ (self.Q.T @ G)
-        self.est = np.trace(self.Q.T @ self.matvec(self.Q)) + 1 / G.shape[-1] * np.trace(G.T @ self.matvec(G))
+        self.est = np.sum(self.Q.conj() * self.matvec(self.Q)) + 1 / G.shape[-1] * np.trace(G.T @ self.matvec(G))
         return self.est
 
     def refine(self, k : int = 1):
@@ -306,7 +306,7 @@ class DeflatedTraceEstimator(TraceEstimator):
         self.Q = self.sketch.refine(k=k)
         G = self.rng(self.n, k)
         G = G - self.Q @ (self.Q.T @ G)
-        self.est = np.trace(self.Q.T @ self.matvec(self.Q)) + 1/(self.k // 3 + G.shape[-1]) * np.trace(G.T @ self.matvec(G))
+        self.est = np.sum(self.Q.conj() * self.matvec(self.Q)) + 1/(self.k // 3 + G.shape[-1]) * np.trace(G.T @ self.matvec(G))
         self.k += k
         return self.est
 
