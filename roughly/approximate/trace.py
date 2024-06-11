@@ -103,13 +103,13 @@ class HutchinsonTraceEstimator(TraceEstimator):
 
         Returns
         -------
-        self.est : float
+        self.trace : float
             Trace estimate.
         """
         self._preprocess(A, k, n, dtype=dtype)
         V = self.rng(self.n, self.k)
-        self.est = np.sum(V.conj() * self.matvec(V)) / self.k
-        return self.est
+        self.trace = np.sum(V.conj() * self.matvec(V)) / self.k
+        return self.trace
 
     def refine(self, k : int = 1):
         """
@@ -122,13 +122,13 @@ class HutchinsonTraceEstimator(TraceEstimator):
 
         Returns
         -------
-        self.est : float
+        self.trace : float
             Trace estimate.
         """
         V = self.rng(self.n, k)
-        self.est = (self.est * self.k + np.sum(V.conj() * self.matvec(V))) / (k + self.k)
+        self.trace = (self.trace * self.k + np.sum(V.conj() * self.matvec(V))) / (k + self.k)
         self.k += k
-        return self.est
+        return self.trace
 
 class SubspaceProjectionEstimator(TraceEstimator):
     """
@@ -191,13 +191,13 @@ class SubspaceProjectionEstimator(TraceEstimator):
 
         Returns
         -------
-        self.est : float
+        self.trace : float
             Trace estimate.
         """
         self._preprocess(A, k, n, dtype=dtype)
         self.Q = self.sketch.compute(self.matvec, k=k, n=self.n, dtype=self.dtype)
-        self.est = np.sum(self.Q.conj() * self.matvec(self.Q))
-        return self.est
+        self.trace = np.sum(self.Q.conj() * self.matvec(self.Q))
+        return self.trace
 
     def refine(self, k : int = 1):
         """
@@ -210,13 +210,13 @@ class SubspaceProjectionEstimator(TraceEstimator):
 
         Returns
         -------
-        self.est : float
+        self.trace : float
             Trace estimate.
         """
         self.Q = self.sketch.refine(k=k)
-        self.est = np.sum(self.Q.conj() * self.matvec(self.Q))
+        self.trace = np.sum(self.Q.conj() * self.matvec(self.Q))
         self.k += k
-        return self.est
+        return self.trace
 
 class DeflatedTraceEstimator(TraceEstimator):
     """
@@ -259,7 +259,7 @@ class DeflatedTraceEstimator(TraceEstimator):
         self.sketch = StandardSketch(rng)
         super().__init__(rng)
 
-    def compute(self, A : Union[np.ndarray, callable], k : int = 10, n : Union[int, None] = None, dtype : Union[type, None] = None):
+    def compute(self, A : Union[np.ndarray, callable], k : int = 10, sketch_ratio : float = 2/3, n : Union[int, None] = None, dtype : Union[type, None] = None):
         """
         Compute the trace estimate.
 
@@ -279,17 +279,23 @@ class DeflatedTraceEstimator(TraceEstimator):
 
         Returns
         -------
-        self.est : float
+        self.trace : float
             Trace estimate.
         """
         self._preprocess(A, k, n, dtype=dtype)
-        self.Q = self.sketch.compute(self.matvec, k=k // 3, n=self.n, dtype=self.dtype)
-        G = self.rng(self.n, k // 3)
-        G = G - self.Q @ (self.Q.T @ G)
-        self.est = np.sum(self.Q.conj() * self.matvec(self.Q)) + 1 / G.shape[-1] * np.trace(G.T @ self.matvec(G))
-        return self.est
+        k_sketch = round(k * sketch_ratio / 2)
+        k_correction = k - k_sketch
 
-    def refine(self, k : int = 1):
+        # Subspace projection
+        self.Q = self.sketch.compute(self.matvec, k=k_sketch, n=self.n, dtype=self.dtype)
+        self.S = self.rng(self.n, k_correction)
+
+        # Trace correction
+        G = self.S - self.Q @ (self.Q.T @ self.S)
+        self.trace = np.sum(self.Q.conj() * self.matvec(self.Q)) + np.sum(G.conj() * self.matvec(G)) / k_correction
+        return self.trace
+
+    def refine(self, k : int = 1, sketch_ratio : float = 2/3):
         """
         Refine the trace estimate.
 
@@ -300,15 +306,21 @@ class DeflatedTraceEstimator(TraceEstimator):
 
         Returns
         -------
-        self.est : float
+        self.trace : float
             Trace estimate.
         """
-        self.Q = self.sketch.refine(k=k)
-        G = self.rng(self.n, k)
-        G = G - self.Q @ (self.Q.T @ G)
-        self.est = np.sum(self.Q.conj() * self.matvec(self.Q)) + 1/(self.k // 3 + G.shape[-1]) * np.trace(G.T @ self.matvec(G))
+        k_sketch = round(k * sketch_ratio / 2)
+        k_correction = k - k_sketch
+
+        # Subspace projection
+        self.Q = self.sketch.refine(k=k_sketch)
+        self.S = np.hstack((self.S, self.rng(self.n, k_correction)))
+
+        # Trace correction
+        G = self.S - self.Q @ (self.Q.T @ self.S)
+        self.trace = np.sum(self.Q.conj() * self.matvec(self.Q)) + np.sum(G.conj() * self.matvec(G)) / G.shape[-1]
         self.k += k
-        return self.est
+        return self.trace
 
 # TODO: class XTrace(TraceEstimator)
 

@@ -13,7 +13,7 @@ def test_HutchinsonTraceEstimator():
     tr_A = np.trace(A)
 
     for k in [1, 2, 3, 10, 20]:
-        estimator = HutchinsonTraceEstimator(rng="rademacher")
+        estimator = HutchinsonTraceEstimator()
         estimator.compute(A, k)
         k_total = k
         for k_refine in range(10):
@@ -29,7 +29,7 @@ def test_SubspaceProjectionEstimator():
     tr_A = np.trace(A)
 
     for k in [1, 2, 3, 10, 20]:
-        estimator = SubspaceProjectionEstimator(rng="rademacher")
+        estimator = SubspaceProjectionEstimator()
         estimator.compute(A, k)
         k_total = k
         for k_refine in range(10):
@@ -44,13 +44,12 @@ def test_DeflatedTraceEstimator():
     A = A + A.conj().T
     tr_A = np.trace(A)
 
-    for k in [3, 10, 20]:
-        estimator = DeflatedTraceEstimator(rng="rademacher")
+    for k in [1, 2, 3, 10, 20]:
+        estimator = DeflatedTraceEstimator()
         estimator.compute(A, k)
         k_total = k
         for k_refine in range(10):
             k_total += k_refine
             t = estimator.refine(k=k_refine)
             if k_refine > 5:
-                assert(abs(tr_A - t) / abs(tr_A) < 10 * n / k_total)
-
+                assert(abs(tr_A - t) / abs(tr_A) < 5 * n / k_total)
