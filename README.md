@@ -22,7 +22,7 @@ This project is based on the doctoral course [Advanced Scientific Programming in
 Suppose you need to compute a basis of the Krylov subspace
 
 $$
-\mathcal{K}^{k}(\boldsymbol{A}, \boldsymbol{x}) = \mathrm{span}\big\{ \boldsymbol{x}, \boldsymbol{A}\boldsymbol{x}, \boldsymbol{A}^2\boldsymbol{x}, \dots, \boldsymbol{A}^{k-1}\boldsymbol{x} \big\}.
+\mathcal{K}^{k}(\boldsymbol{A}, \boldsymbol{x}) = \mathrm{span}\{ \boldsymbol{x}, \boldsymbol{A}\boldsymbol{x}, \boldsymbol{A}^2\boldsymbol{x}, \dots, \boldsymbol{A}^{k-1}\boldsymbol{x} \}.
 $$
 
 We do this by running $k$ iterations of the Arnoldi method:
@@ -51,7 +51,7 @@ The `refine()` attribute also makes convergence studies of the methods easier to
 To install this package, simply use
 
 ```python
-pip install https://github.com/FMatti/roughly.git
+pip install git+https://github.com/FMatti/roughly.git
 ```
 
 and then import it with
