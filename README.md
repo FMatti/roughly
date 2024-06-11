@@ -50,7 +50,7 @@ The `refine()` attribute also makes convergence studies of the methods easier to
 
 To install this package, simply use
 
-```python
+```
 pip install git+https://github.com/FMatti/roughly.git
 ```
 
