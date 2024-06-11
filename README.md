@@ -13,42 +13,50 @@
 
 A majority of algorithms in randomized numerical linear algebra are sequential and additive in nature. However, many implementations do not effectively exploit this structure. Often, once an insufficiently accurate result is observed, the computation is restarted from the beginning with a modified parameter set. This results in highly inefficient workflows.
 
-The goal of roughly is to collect the most widespread algorithms of randomized numerical linear algebra and wrap them into an easy to use package where previous computations are stored in memory and available for the user to be reused.
+The goal of _roughly_ is to collect the most widespread algorithms of randomized numerical linear algebra and wrap them into an easy to use package where previous computations are stored in memory and available for the user to be reused.
 
-This project was based on the course [Advanced Scientific Programming in Python](https://github.com/JochenHinz/python_seminar) by Jochen Hinz.
+This project is based on the doctoral course [Advanced Scientific Programming in Python](https://github.com/JochenHinz/python_seminar) by Jochen Hinz.
 
 ## Example
 
-Computing a Krylov decomposition using the Arnoldi method:
+Suppose you need to compute a basis of the Krylov subspace
 
-```[python]
+$$
+\mathcal{K}^{k}(\boldsymbol{A}, \boldsymbol{x}) = \operatorname{span}\left\{ \boldsymbol{x}, \boldsymbol{A}\boldsymbol{x}, \boldsymbol{A}^2\boldsymbol{x}, \dots, \boldsymbol{A}^{k-1}\boldsymbol{x} \right\}.
+$$
+
+We do this by running $k$ iterations of the Arnoldi method.
+
+```python
 import numpy as np
 from roughly.approximate.krylov import ArnoldiDecomposition
 
-decomposition = ArnoldiDecomposition()
+arnoldi = ArnoldiDecomposition()
 
-A = np.random.randn(100, 100)
-X = np.random.randn(100)
-U, H = decomposition.compute(A, X, k=10)
-
-# ... do some calculations and realize the decomposition is not sufficient
-
-U, H = decomposition.refine(k=10)
+A = np.random.randn(100, 100)  # Example matrix
+x = np.random.randn(100)  # Example starting vector
+basis, _ = arnoldi.compute(A, x, k=10)
 ```
 
-## Quick start
+After $k$ iterations of the Arnoldi method you proceed with your computations, but realize your basis is not sufficient for these purposes. In these cases, _roughly_ makes it easy to "refine" the approximation with additional iterations.
 
-### Prerequisites
+```python
+refined_basis, _ = arnoldi.refine(k=10)
+```
+
+The `refine()` attribute also makes convergence studies of the methods easier to compute.
+
+## Usage
 
 To install this package, simply use
 
-```[python]
+```python
 pip install https://github.com/FMatti/roughly.git
 ```
 
-and then import using
+and then import it with
 
-```[python]
+```python
 import roughly as rly
 ```
 
