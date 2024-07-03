@@ -296,9 +296,9 @@ class LanczosDecomposition(KrylovDecomposition):
 
         if self.return_matrix:
             T = np.zeros((self.m, self.k + 1, self.k), dtype=self.a.dtype)
-            for i in range(self.m):
-                T[i, :self.k, :self.k] = np.diag(b[i, 1:-1], 1) + np.diag(a[i]) + np.diag(b[i, 1:-1], -1)
-                T[i, -1, -1] = b[i, -1]
+            T[:, np.arange(self.k), np.arange(self.k)] = a
+            T[:, np.arange(1, self.k + 1), np.arange(self.k)] = b[:, 1:]
+            T[:, np.arange(self.k - 1), np.arange(1, self.k)] = b[:, 1:-1]
             if not self.extend_matrix:
                 T = T[:, :self.k, :]
             if self.m == 1:
@@ -470,12 +470,16 @@ class BlockLanczosDecomposition(LanczosDecomposition):
         U = np.einsum("ijk->jik", self.U).reshape(self.n, -1)
 
         if self.return_matrix:
+
             T = np.zeros(((self.k + 1)*self.m, self.k*self.m), dtype=self.dtype)
-            for i in range(self.k):
-                T[i*self.m:(i+1)*self.m,i*self.m:(i+1)*self.m] = self.a[i]
-                T[(i+1)*self.m:(i+2)*self.m, i*self.m:(i+1)*self.m] = self.b[i + 1]
-                if i < self.k - 1:
-                    T[i*self.m:(i+1)*self.m, (i+1)*self.m:(i+2)*self.m] = self.b[i + 1].conj().T
+
+            x, y = np.meshgrid(np.arange(self.m), np.arange(self.m))
+            id_x = np.add.outer(self.m * np.arange(self.k), x).ravel()
+            id_y = np.add.outer(self.m * np.arange(self.k), y).ravel()
+            T[id_y, id_x] = self.a.ravel()
+            T[id_y + self.m, id_x] = self.b[1:self.k+1].ravel()
+            T[id_y[:-self.m ** 2], id_x[:-self.m ** 2] + self.m] = np.einsum("ijk->ikj", self.b[1:self.k].conj()).ravel()
+
             if not self.extend_matrix:
                 T = T[:-self.m, :]
             return U, T
