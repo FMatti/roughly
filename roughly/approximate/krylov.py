@@ -18,8 +18,8 @@ class KrylovDecomposition(metaclass=ABCMeta):
         """
         Preprocess the input matrix/operator and determine problem dimensions.
         """
-        if len(X.shape) < 2:
-            X = X.reshape(-1, 1)
+        if X.ndim < 2:
+            X = X[:, np.newaxis]
         self.n, self.m = X.shape
         self.k = k
 
@@ -32,9 +32,8 @@ class KrylovDecomposition(metaclass=ABCMeta):
         """
         Pad np.ndarray with user specified number of zeros along selected axes.
         """
-        pad = [[0, 0] for _ in range(len(A.shape))]
-        for axis, size in zip(axes, sizes):
-            pad[axis][1] = size
+        pad = np.zeros((A.ndim, 2), dtype=int)
+        pad[list(axes), 1] = sizes
         return np.pad(A, pad, mode="constant")
 
     @abstractmethod
@@ -186,7 +185,7 @@ class ArnoldiDecomposition(KrylovDecomposition):
         u_tilde = w - np.einsum("ijk,ik->jk", self.U[: j + 1], self.H[: j + 1, j])
 
         # Reorthogonalize
-        idx = np.where(np.linalg.norm(u_tilde, axis=0) < self.reorth_tol * np.linalg.norm(w, axis=0))[0]
+        idx, = np.where(np.linalg.norm(u_tilde, axis=0) < self.reorth_tol * np.linalg.norm(w, axis=0))
         if len(idx) >= 1:
             h_hat = np.einsum("ijk,jk->ik", self.U[:j + 1, :, idx].conj(), u_tilde[:, idx])
             self.H[: j + 1, j, idx] += h_hat
@@ -278,7 +277,7 @@ class LanczosDecomposition(KrylovDecomposition):
         u_tilde = w - self.U[j] * self.a[j] - (self.U[j-1] * self.b[j] if j > 0 else 0)
 
         # reorthogonalization
-        idx = np.where(np.linalg.norm(u_tilde, axis=0) < self.reorth_tol * np.linalg.norm(w, axis=0))[0]
+        idx, = np.where(np.linalg.norm(u_tilde, axis=0) < self.reorth_tol * np.linalg.norm(w, axis=0))
         if len(idx) >= 1:
             h_hat = np.einsum("ijk,jk->ik", self.U[:j + 1, :, idx].conj(), u_tilde[:, idx])
             self.a[j, idx] += h_hat[-1]
@@ -474,11 +473,11 @@ class BlockLanczosDecomposition(LanczosDecomposition):
             T = np.zeros(((self.k + 1)*self.m, self.k*self.m), dtype=self.dtype)
 
             x, y = np.meshgrid(np.arange(self.m), np.arange(self.m))
-            id_x = np.add.outer(self.m * np.arange(self.k), x).ravel()
-            id_y = np.add.outer(self.m * np.arange(self.k), y).ravel()
-            T[id_y, id_x] = self.a.ravel()
-            T[id_y + self.m, id_x] = self.b[1:self.k+1].ravel()
-            T[id_y[:-self.m ** 2], id_x[:-self.m ** 2] + self.m] = np.einsum("ijk->ikj", self.b[1:self.k].conj()).ravel()
+            idx = np.add.outer(self.m * np.arange(self.k), x).ravel()
+            idy = np.add.outer(self.m * np.arange(self.k), y).ravel()
+            T[idy, idx] = self.a.ravel()
+            T[idy + self.m, idx] = self.b[1:self.k+1].ravel()
+            T[idy[:-self.m ** 2], idx[:-self.m ** 2] + self.m] = np.einsum("ijk->ikj", self.b[1:self.k].conj()).ravel()
 
             if not self.extend_matrix:
                 T = T[:-self.m, :]
