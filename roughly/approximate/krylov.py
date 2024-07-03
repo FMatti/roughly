@@ -470,14 +470,13 @@ class BlockLanczosDecomposition(LanczosDecomposition):
 
         if self.return_matrix:
 
-            T = np.zeros(((self.k + 1)*self.m, self.k*self.m), dtype=self.dtype)
-
             x, y = np.meshgrid(np.arange(self.m), np.arange(self.m))
             idx = np.add.outer(self.m * np.arange(self.k), x).ravel()
             idy = np.add.outer(self.m * np.arange(self.k), y).ravel()
-            T[idy, idx] = self.a.ravel()
-            T[idy + self.m, idx] = self.b[1:self.k+1].ravel()
-            T[idy[:-self.m ** 2], idx[:-self.m ** 2] + self.m] = np.einsum("ijk->ikj", self.b[1:self.k].conj()).ravel()
+            row = np.concatenate((idy, idy + self.m, idy[:-self.m ** 2]))
+            col = np.concatenate((idx, idx, idx[:-self.m ** 2] + self.m))
+            data = np.concatenate((self.a.ravel(), self.b[1:self.k+1].ravel(), np.einsum("ijk->ikj", self.b[1:self.k].conj()).ravel()))
+            T = sp.sparse.coo_matrix((data, (row, col)), shape=((self.k + 1)*self.m, self.k*self.m))
 
             if not self.extend_matrix:
                 T = T[:-self.m, :]
