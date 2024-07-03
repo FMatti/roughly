@@ -347,9 +347,6 @@ class BlockArnoldiDecomposition(ArnoldiDecomposition):
     for Solving Large Lyapunov Equations". SIAM Journal on Numerical Analysis.
     31 (1): 227-251. doi:10.1137/0731012.
     """
-    def __init__(self):
-        super().__init__()
-
     def _initialize(self, X):
         self.H = np.zeros((self.k + 1, self.k, self.m, self.m), dtype=self.dtype)
         self.U = np.empty((self.k + 1, self.n, self.m), dtype=self.dtype)
@@ -428,7 +425,7 @@ class BlockLanczosDecomposition(LanczosDecomposition):
         self.return_matrix = return_matrix
         self.extend_matrix = extend_matrix
         self.reorth_steps = reorth_steps
-        super().__init__()
+        super().__init__(return_matrix=return_matrix, extend_matrix=extend_matrix)
 
     def _initialize(self, X):
 
@@ -446,7 +443,7 @@ class BlockLanczosDecomposition(LanczosDecomposition):
         u_tilde = w - self.U[j] @ self.a[j] - (self.U[j-1] @ self.b[j].conj().T if j > 0 else 0)
 
         # reorthogonalization
-        if j > 0 and (self.reorth_steps > j or self.reorth_steps == -1):
+        if j > 0 and (j < self.reorth_steps or self.reorth_steps == -1):
             h_hat = np.swapaxes(self.U[:j], 0, 1).reshape(self.n, -1).conj().T @ u_tilde
             self.a[j] += h_hat[-1]
             u_tilde = u_tilde - np.swapaxes(self.U[:j], 0, 1).reshape(self.n, -1) @ h_hat
@@ -473,12 +470,15 @@ class BlockLanczosDecomposition(LanczosDecomposition):
             x, y = np.meshgrid(np.arange(self.m), np.arange(self.m))
             idx = np.add.outer(self.m * np.arange(self.k), x).ravel()
             idy = np.add.outer(self.m * np.arange(self.k), y).ravel()
-            row = np.concatenate((idy, idy + self.m, idy[:-self.m ** 2]))
-            col = np.concatenate((idx, idx, idx[:-self.m ** 2] + self.m))
-            data = np.concatenate((self.a.ravel(), self.b[1:self.k+1].ravel(), np.einsum("ijk->ikj", self.b[1:self.k].conj()).ravel()))
-            T = sp.sparse.coo_matrix((data, (row, col)), shape=((self.k + 1)*self.m, self.k*self.m))
-
-            if not self.extend_matrix:
-                T = T[:-self.m, :]
+            if self.extend_matrix:
+                row = np.concatenate((idy, idy + self.m, idy[:-self.m ** 2]))
+                col = np.concatenate((idx, idx, idx[:-self.m ** 2] + self.m))
+                data = np.concatenate((self.a.ravel(), self.b[1:self.k+1].ravel(), np.einsum("ijk->ikj", self.b[1:self.k].conj()).ravel()))
+                T = sp.sparse.coo_matrix((data, (row, col)), shape=((self.k + 1)*self.m, self.k*self.m))
+            else:
+                row = np.concatenate((idy, idy[:-self.m ** 2] + self.m, idy[:-self.m ** 2]))
+                col = np.concatenate((idx, idx[:-self.m ** 2], idx[:-self.m ** 2] + self.m))
+                data = np.concatenate((self.a.ravel(), self.b[1:self.k].ravel(), np.einsum("ijk->ikj", self.b[1:self.k].conj()).ravel()))
+                T = sp.sparse.coo_matrix((data, (row, col)), shape=(self.k*self.m, self.k*self.m))
             return U, T
         return U, self.a, self.b
