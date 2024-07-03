@@ -23,7 +23,7 @@ class KrylovDecomposition(metaclass=ABCMeta):
         self.n, self.m = X.shape
         self.k = k
 
-        self.matvec = (lambda x: A @ x) if isinstance(A, np.ndarray | sp.sparse.sparray) else A
+        self.matvec = (lambda x: A @ x) if isinstance(A, np.ndarray | sp.sparse.spmatrix) else A
         self.dtype = A.dtype if dtype is None else dtype
         return X
 
